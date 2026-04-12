@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>先生用ダッシュボード | 社会科採点システム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root{
+  --ink:#1a1f2e;--ink-s:#4a5568;--ink-m:#94a3b8;
+  --accent:#1d6fb8;--accent-dk:#155e9c;--accent-lt:#eff6ff;--accent-lt2:#dbeafe;
+  --green:#16a34a;--green-lt:#f0fdf4;--orange:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --surface:#fff;--s2:#f8fafc;--s3:#f1f5f9;--border:#e2e8f0;
+  --shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);--r:14px;--r-sm:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--s2);color:var(--ink);line-height:1.65;min-height:100vh;}
+#loginScreen{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;
+  background:linear-gradient(135deg,#071428 0%,#0c2251 50%,#071428 100%);}
+.login-wrap{width:100%;max-width:440px;}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo-mark{display:inline-flex;width:72px;height:72px;background:var(--accent);border-radius:22px;
+  align-items:center;justify-content:center;font-size:34px;margin-bottom:12px;
+  box-shadow:0 0 0 10px rgba(29,111,184,.15),0 0 0 20px rgba(29,111,184,.07);}
+.login-logo-txt{font-family:'DM Sans',sans-serif;color:rgba(255,255,255,.5);font-size:13px;letter-spacing:1px;}
+.login-card{background:var(--surface);border-radius:22px;padding:40px;box-shadow:var(--shadow-lg);}
+.login-title{font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--ink-m);margin-bottom:28px;}
+.setup-link{font-size:13px;color:var(--accent);text-align:center;margin-top:16px;cursor:pointer;text-decoration:underline;}
+#app{display:none;}
+.topbar{position:sticky;top:0;z-index:100;background:var(--ink);display:flex;align-items:center;gap:14px;padding:0 24px;height:56px;}
+.topbar-logo{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:#fff;flex:1;display:flex;align-items:center;gap:10px;}
+.topbar-logo span{font-size:11px;color:rgba(255,255,255,.4);font-weight:400;}
+.school-pill{background:rgba(29,111,184,.3);color:#93c5fd;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid rgba(29,111,184,.4);}
+.main{max-width:1100px;margin:0 auto;padding:32px 20px;}
+.tabs{display:flex;gap:2px;background:var(--s3);border-radius:var(--r-sm);padding:4px;margin-bottom:28px;border:1px solid var(--border);}
+.tab-btn{flex:1;padding:10px 8px;border:none;background:transparent;border-radius:6px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink-s);transition:all .18s;white-space:nowrap;}
+.tab-btn.on{background:var(--surface);color:var(--accent);font-weight:700;box-shadow:var(--shadow);}
+.tab-btn:hover:not(.on){color:var(--ink);background:rgba(255,255,255,.6);}
+.pane{display:none;}.pane.on{display:block;}
+.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow);padding:24px;margin-bottom:18px;}
+.card-head{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.card-head .sub{margin-left:auto;font-size:12px;font-weight:400;color:var(--ink-m);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-s);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:var(--r-sm);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;background:var(--s2);}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(29,111,184,.1);}
+.field textarea{resize:vertical;min-height:60px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 20px;border:none;border-radius:var(--r-sm);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover:not(:disabled){background:var(--accent-dk);transform:translateY(-1px);box-shadow:0 4px 12px rgba(29,111,184,.3);}
+.btn-block{width:100%;padding:13px;}
+.btn-outline{background:transparent;color:var(--accent);border:2px solid var(--accent);}
+.btn-outline:hover{background:var(--accent-lt);}
+.btn-ghost{background:var(--s3);color:var(--ink-s);border:none;}
+.btn-ghost:hover{background:var(--border);}
+.btn-danger{background:transparent;color:var(--red);border:2px solid #fecaca;}
+.btn-danger:hover{background:#fef2f2;}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px;}
+.btn-xs{padding:4px 9px;font-size:11px;border-radius:6px;}
+.err{display:none;font-size:13px;color:var(--red);text-align:center;margin-top:10px;}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.b-blue{background:var(--accent-lt);color:#1d4ed8;}.b-green{background:#f0fdf4;color:#166534;}
+.b-gray{background:var(--s3);color:var(--ink-s);}.b-purple{background:#faf5ff;color:#7c3aed;}
+.b-orange{background:#fff7ed;color:#b45309;}
+.table-wrap{overflow-x:auto;border-radius:var(--r-sm);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--ink);color:rgba(255,255,255,.9);padding:10px 12px;text-align:left;white-space:nowrap;font-weight:600;font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.3px;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:rgba(29,111,184,.03);}
+.drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:44px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2);}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:var(--accent-lt);}
+.prog-wrap{display:none;margin-top:16px;}
+.prog-bg{background:var(--border);border-radius:99px;height:6px;overflow:hidden;}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--accent),#60a5fa);border-radius:99px;transition:width .4s ease;}
+.prog-txt{font-size:13px;color:var(--ink-s);margin-top:8px;text-align:center;}
+.file-list{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+.file-row{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--s3);border-radius:8px;border:1px solid var(--border);font-size:13px;}
+.file-row .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.tag-wait{background:var(--s3);color:var(--ink-m);border:1px solid var(--border);}
+.tag-run{background:#fff7ed;color:var(--orange);border:1px solid #fde68a;}
+.tag-ok{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0;}
+.tag-err{background:#fef2f2;color:var(--red);border:1px solid #fecaca;}
+.q-block{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px;margin-bottom:12px;}
+.q-num{display:inline-flex;width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-right:8px;flex-shrink:0;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:22px;}
+.stat{background:var(--surface);border-radius:var(--r-sm);border:1px solid var(--border);padding:18px;text-align:center;}
+.stat-n{font-family:'DM Sans',sans-serif;font-size:30px;font-weight:700;color:var(--accent);line-height:1;}
+.stat-l{font-size:11px;color:var(--ink-m);margin-top:5px;text-transform:uppercase;letter-spacing:.5px;}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;overflow-y:auto;padding:20px;backdrop-filter:blur(2px);}
+.overlay.on{display:block;}
+.modal{background:var(--surface);border-radius:18px;max-width:680px;margin:0 auto;padding:32px;box-shadow:var(--shadow-lg);}
+.modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);}
+.modal-h h2{font-size:18px;font-family:'DM Sans',sans-serif;font-weight:700;color:var(--ink);}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-m);padding:4px;border-radius:6px;}
+.modal-close:hover{background:var(--s3);}
+.spin{width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:48px;color:var(--ink-m);font-size:14px;}
+code{background:var(--s3);padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;font-size:12px;color:var(--accent);border:1px solid var(--border);}
+.cell-o{color:var(--green);font-weight:700;}
+.cell-x{color:var(--red);font-weight:700;}
+.cell-na{color:var(--ink-m);}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.mode-btn{padding:12px;border:2px solid var(--border);border-radius:var(--r-sm);cursor:pointer;text-align:center;font-family:inherit;background:var(--s2);font-size:13px;font-weight:500;color:var(--ink-s);transition:all .18s;}
+.mode-btn.on{border-color:var(--accent);background:var(--accent-lt);color:var(--accent);font-weight:700;}
+.mode-btn:hover:not(.on){border-color:var(--accent);color:var(--ink);}
+@media(max-width:640px){.row2,.row3{grid-template-columns:1fr;}.main{padding:20px 12px;}.tabs{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-logo-mark">📋</div>
+      <div class="login-logo-txt">社会科採点システム</div>
+    </div>
+    <div class="login-card">
+      <div class="login-title">先生用ログイン</div>
+      <div class="login-sub">学校コードとパスワードを入力してください</div>
+      <div class="field"><label>学校コード</label><input id="inp-code" type="text" placeholder="例: school01" autocomplete="off"></div>
+      <div class="field"><label>パスワード</label><input id="inp-pass" type="password" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary btn-block" id="loginBtn" onclick="doLogin()">ログイン</button>
+      <div class="err" id="loginErr"></div>
+      <p class="setup-link" onclick="showSetup()">はじめて使う方はこちら（学校登録）</p>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">📋 社会科採点システム <span>| 先生用ダッシュボード</span></div>
+    <span class="school-pill" id="schoolPill"></span>
+    <button style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:none;font-weight:700;font-family:inherit;cursor:pointer;border-radius:8px;padding:7px 14px;font-size:13px" onclick="doLogout()">ログアウト</button>
+  </div>
+  <div class="main">
+    <div class="tabs">
+      <button class="tab-btn on" onclick="goTab('tests',this)">📝 テスト管理</button>
+      <button class="tab-btn" onclick="goTab('grade',this)">📤 採点</button>
+      <button class="tab-btn" onclick="goTab('results',this)">📊 成績一覧</button>
+    </div>
+
+    <!-- テスト管理 -->
+    <div id="pane-tests" class="pane on">
+      <div class="card">
+        <div class="card-head">新しいテストを作成</div>
+        <div class="row2">
+          <div class="field"><label>テスト名</label><input id="t-name" type="text" placeholder="例: 日本史 第1回小テスト"></div>
+          <div class="field"><label>科目</label>
+            <select id="t-subject">
+              <option>日本史</option><option>世界史</option><option>地理</option><option>政治経済</option><option>倫理</option>
+            </select>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:8px;">
+          <label>問題数</label>
+          <input id="t-qcount" type="number" min="1" max="50" value="5" style="width:80px;" onchange="buildQForm()">
+        </div>
+        <div style="margin-bottom:14px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:#14532d;">📍 テンプレート：</span>
+          <button class="btn btn-sm" style="background:#16a34a;color:#fff;border:none;" onclick="loadPrefTemplate()">🗾 都道府県47問を自動入力</button>
+          <span style="font-size:12px;color:#4ade80;">ボタン1つで①〜㊼の47問セットを入力します</span>
+        </div>
+        <div id="q-form"></div>
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="saveTest()">テストを保存</button>
+      </div>
+      <div id="test-list"></div>
+    </div>
+
+    <!-- 採点 -->
+    <div id="pane-grade" class="pane">
+      <div class="card">
+        <div class="card-head">採点するテストを選択</div>
+        <div class="field"><label>テスト</label><select id="g-test"><option value="">— テストを選択 —</option></select></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">PDFアップロードモード</div>
+        <div class="mode-grid">
+          <button class="mode-btn on" id="modeBtn-multi" onclick="setPdfMode('multi')">
+            👥 1ファイルに複数生徒
+          </button>
+          <button class="mode-btn" id="modeBtn-single" onclick="setPdfMode('single')">
+            👤 1ファイル＝1生徒
+          </button>
+        </div>
+        <div id="mode-note" style="font-size:12px;color:var(--ink-m);margin-bottom:14px;padding:8px 12px;background:var(--s3);border-radius:var(--r-sm);">
+          📌 現在：1ファイルに複数生徒の答案がまとまっている場合
+        </div>
+        <div id="pages-wrap" style="margin-bottom:16px;padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-sm);">
+          <div style="font-size:13px;font-weight:700;color:#14532d;margin-bottom:8px;">1生徒あたりのページ数</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="number" id="pagesPerStudent" value="1" min="1" max="20" style="width:70px;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;">
+            <span style="font-size:13px;color:var(--ink-s);">ページ / 生徒</span>
+          </div>
+          <div style="font-size:12px;color:var(--ink-m);margin-top:6px;">例：1枚なら「1」、表裏2枚なら「2」</div>
+        </div>
+
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()"
+          ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)">
+          <div style="font-size:44px;margin-bottom:12px;">📂</div>
+          <div style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;">クリックまたはドラッグ＆ドロップ</div>
+          <div style="font-size:13px;color:var(--ink-m);">PDF形式・複数ファイル対応</div>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf" multiple style="display:none;" onchange="addFiles(this.files)">
+        <div id="file-list" class="file-list"></div>
+        <div class="prog-wrap" id="progWrap">
+          <div class="prog-bg"><div class="prog-bar" id="progBar" style="width:0%"></div></div>
+          <div class="prog-txt" id="progTxt">準備中...</div>
+        </div>
+        <div id="failed-list" style="margin-top:8px;"></div>
+        <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="startBtn" onclick="startGrading()" disabled>🚀 一括採点スタート</button>
+          <button class="btn btn-ghost" onclick="clearFiles()">🗑️ クリア</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成績一覧 -->
+    <div id="pane-results" class="pane">
+      <div class="card">
+        <div class="row2">
+          <div class="field"><label>テスト</label><select id="res-test" onchange="loadResults()"><option value="">— テストを選択 —</option></select></div>
+          <div style="display:flex;align-items:flex-end;gap:8px;padding-bottom:16px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="exportCSV()">📥 CSV出力</button>
+            <button class="btn btn-sm" style="background:#7c3aed;color:#fff;border:none;" onclick="printAnswerSheet()">🖨️ 解答用紙を印刷</button>
+          </div>
+        </div>
+      </div>
+      <div id="stats-row" class="stats" style="display:none;">
+        <div class="stat"><div class="stat-n" id="st-total">-</div><div class="stat-l">採点数</div></div>
+        <div class="stat"><div class="stat-n" id="st-avg">-</div><div class="stat-l">平均点</div></div>
+        <div class="stat"><div class="stat-n" id="st-max">-</div><div class="stat-l">最高点</div></div>
+        <div class="stat"><div class="stat-n" id="st-min">-</div><div class="stat-l">最低点</div></div>
+      </div>
+      <div id="results-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="overlay" id="setupOverlay" onclick="closeBg(event,'setupOverlay')">
+  <div class="modal">
+    <div class="modal-h">
+      <h2>🏫 学校を新規登録</h2>
+      <button class="modal-close" onclick="closeModal('setupOverlay')">✕</button>
+    </div>
+    <div class="field"><label>学校コード（英数字）</label><input id="setup-code" type="text" placeholder="例: school01"></div>
+    <div class="field"><label>学校名</label><input id="setup-name" type="text" placeholder="例: ○○高等学校"></div>
+    <div class="field"><label>パスワード（先生用）</label><input id="setup-pass" type="password" placeholder="パスワードを設定"></div>
+    <button class="btn btn-primary btn-block" onclick="doSetup()">登録する</button>
+    <div class="err" id="setupErr"></div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay" onclick="closeBg(event,'detailOverlay')">
+  <div class="modal">
+    <div class="modal-h">
+      <h2 id="detail-title">採点詳細</h2>
+      <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
+    </div>
+    <div id="detail-body"></div>
+  </div>
+</div>
+
+<script>
+const FUNC_URL = "https://uavwqzzbtrvblfozphgy.supabase.co/functions/v1/grade";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdndxenpidHJ2Ymxmb3pwaGd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMTA2MjMsImV4cCI6MjA5MTU4NjYyM30.TxBGln12kQbccSTHZpJxwMJXRLFceS8imE60Rehh6Fw";
+
+// PDF.js設定
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+let school = null;
+let pendingFiles = [];
+let allResults = [];
+let currentTests = [];
+let pdfMode = "multi";
+
+async function api(body) {
+  const res = await fetch(FUNC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// ===== AUTH =====
+async function doLogin() {
+  const code = document.getElementById("inp-code").value.trim();
+  const pass = document.getElementById("inp-pass").value;
+  const btn = document.getElementById("loginBtn");
+  const err = document.getElementById("loginErr");
+  if (!code || !pass) { showErr(err, "入力してください"); return; }
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>確認中...';
+  const data = await api({ action: "login", schoolCode: code, password: pass });
+  btn.disabled = false; btn.textContent = "ログイン";
+  if (data.error) { showErr(err, data.error); return; }
+  school = data.school;
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("schoolPill").textContent = school.name;
+  loadTestList();
+}
+
+function doLogout() {
+  school = null;
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+}
+
+async function doSetup() {
+  const code = document.getElementById("setup-code").value.trim();
+  const name = document.getElementById("setup-name").value.trim();
+  const pass = document.getElementById("setup-pass").value;
+  const err = document.getElementById("setupErr");
+  if (!code || !name || !pass) { showErr(err, "すべて入力してください"); return; }
+  const data = await api({ action: "setupSchool", schoolCode: code, schoolName: name, password: pass });
+  if (data.error) { showErr(err, data.error); return; }
+  closeModal("setupOverlay");
+  document.getElementById("inp-code").value = code;
+  alert("登録しました！ログインしてください。");
+}
+
+// ===== TABS =====
+function goTab(name, btn) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("on"));
+  document.querySelectorAll(".pane").forEach(p => p.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("pane-" + name).classList.add("on");
+  if (name === "grade") populateGradeSelect();
+  if (name === "results") { populateResultSelect(); }
+}
+
+// ===== テスト =====
+function buildQForm() {
+  const n = parseInt(document.getElementById("t-qcount")?.value || 5);
+  const f = document.getElementById("q-form");
+  if (!f) return;
+  f.innerHTML = Array.from({ length: n }, (_, i) => `
+    <div class="q-block">
+      <div style="display:flex;align-items:center;margin-bottom:12px;">
+        <span class="q-num">${i + 1}</span>
+        <span style="font-size:14px;font-weight:700;">問${i + 1}</span>
+      </div>
+      <div class="field"><label>問題文</label><textarea id="qt-${i}" placeholder="問題文を入力"></textarea></div>
+      <div class="row3">
+        <div class="field"><label>形式</label>
+          <select id="qtype-${i}" onchange="toggleQ(${i})">
+            <option value="fill">記述</option><option value="choice">選択肢（4択）</option>
+          </select>
+        </div>
+        <div class="field"><label>正解</label><input type="text" id="qcorrect-${i}" placeholder="正解を入力"></div>
+        <div class="field"><label>配点</label><input type="number" id="qpts-${i}" value="1" min="1" max="20" style="width:70px;"></div>
+      </div>
+      <div id="qchoices-${i}" style="display:none;">
+        <div class="row3">
+          <div class="field"><label>誤答1</label><input type="text" id="qw1-${i}"></div>
+          <div class="field"><label>誤答2</label><input type="text" id="qw2-${i}"></div>
+          <div class="field"><label>誤答3</label><input type="text" id="qw3-${i}"></div>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+function toggleQ(i) {
+  document.getElementById("qchoices-" + i).style.display =
+    document.getElementById("qtype-" + i).value === "choice" ? "block" : "none";
+}
+
+async function saveTest() {
+  const name = document.getElementById("t-name").value.trim();
+  const subject = document.getElementById("t-subject").value;
+  const n = parseInt(document.getElementById("t-qcount").value);
+  if (!name) { alert("テスト名を入力してください"); return; }
+  const questions = [];
+  for (let i = 0; i < n; i++) {
+    const text = document.getElementById("qt-" + i)?.value.trim() || "";
+    const type = document.getElementById("qtype-" + i)?.value || "fill";
+    const correct = document.getElementById("qcorrect-" + i)?.value.trim() || "";
+    const pts = parseInt(document.getElementById("qpts-" + i)?.value || 1);
+    if (!text || !correct) { alert(`問${i + 1}の問題文と正解を入力してください`); return; }
+    const q = { order_num: i + 1, question_text: text, question_type: type, correct_answer: correct, points: pts };
+    if (type === "choice") {
+      q.choices = [correct,
+        document.getElementById("qw1-" + i)?.value.trim() || "",
+        document.getElementById("qw2-" + i)?.value.trim() || "",
+        document.getElementById("qw3-" + i)?.value.trim() || ""
+      ];
+    }
+    questions.push(q);
+  }
+  const data = await api({ action: "saveTest", schoolId: school.id, name, subject, questions });
+  if (data.error) { alert(data.error); return; }
+  alert("テストを保存しました！");
+  document.getElementById("t-name").value = "";
+  loadTestList();
+}
+
+async function loadTestList() {
+  if (!school) return;
+  const data = await api({ action: "getTests", schoolId: school.id });
+  currentTests = data.tests || [];
+  const subjColor = { "日本史": "b-blue", "世界史": "b-blue", "地理": "b-green", "政治経済": "b-gray", "倫理": "b-purple" };
+  const el = document.getElementById("test-list");
+  if (!currentTests.length) { el.innerHTML = '<p style="text-align:center;color:var(--ink-m);padding:16px;font-size:14px;">まだテストがありません</p>'; return; }
+  el.innerHTML = currentTests.map(t => {
+    const qCount = t.questions?.length || 0;
+    const totalPts = t.questions?.reduce((a, q) => a + q.points, 0) || 0;
+    return `<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;">
+      <div>
+        <div style="display:flex;gap:6px;margin-bottom:4px;">
+          <span class="badge ${subjColor[t.subject] || "b-gray"}">${t.subject}</span>
+          <span class="badge b-gray">${qCount}問 / ${totalPts}点満点</span>
+        </div>
+        <p style="font-size:15px;font-weight:700;">${t.name}</p>
+        <p style="font-size:12px;color:var(--ink-m);">${new Date(t.created_at).toLocaleDateString("ja-JP")}</p>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="deleteTest('${t.id}')">削除</button>
+    </div>`;
+  }).join("");
+}
+
+async function deleteTest(id) {
+  if (!confirm("このテストを削除しますか？")) return;
+  await api({ action: "deleteTest", testId: id });
+  loadTestList();
+}
+
+// ===== 採点 =====
+function setPdfMode(mode) {
+  pdfMode = mode;
+  document.getElementById("modeBtn-multi").classList.toggle("on", mode === "multi");
+  document.getElementById("modeBtn-single").classList.toggle("on", mode === "single");
+  document.getElementById("pages-wrap").style.display = mode === "multi" ? "block" : "none";
+  document.getElementById("mode-note").textContent = mode === "multi"
+    ? "📌 現在：1ファイルに複数生徒の答案がまとまっている場合"
+    : "📌 現在：1ファイルが1生徒の答案";
+}
+
+function populateGradeSelect() {
+  if (!school) return;
+  const sel = document.getElementById("g-test");
+  sel.innerHTML = '<option value="">— テストを選択 —</option>' + currentTests.map(t => `<option value="${t.id}">${t.name}</option>`).join("");
+}
+
+function onDragOver(e) { e.preventDefault(); document.getElementById("dropZone").classList.add("drag"); }
+function onDragLeave() { document.getElementById("dropZone").classList.remove("drag"); }
+function onDrop(e) { e.preventDefault(); onDragLeave(); addFiles(e.dataTransfer.files); }
+
+function addFiles(files) {
+  pendingFiles = [...files];
+  document.getElementById("file-list").innerHTML = pendingFiles.map((f, i) => `
+    <div class="file-row" id="frow-${i}">
+      <span>📄</span>
+      <span class="name">${f.name}</span>
+      <span style="font-size:11px;color:var(--ink-m);">${(f.size / 1024).toFixed(0)}KB</span>
+      <span class="tag tag-wait" id="ftag-${i}">待機中</span>
+    </div>`).join("");
+  document.getElementById("startBtn").disabled = !pendingFiles.length;
+}
+
+function clearFiles() {
+  pendingFiles = [];
+  document.getElementById("file-list").innerHTML = "";
+  document.getElementById("fileInput").value = "";
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("progWrap").style.display = "none";
+  document.getElementById("failed-list").innerHTML = "";
+}
+
+async function pdfPageToBase64(pdf, pageNum) {
+  const page = await pdf.getPage(pageNum);
+  const viewport = page.getViewport({ scale: 2.0 });
+  const canvas = document.createElement("canvas");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext("2d");
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  return canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+}
+
+async function startGrading() {
+  const testId = document.getElementById("g-test").value;
+  if (!testId) { alert("テストを選択してください"); return; }
+  if (!pendingFiles.length) { alert("PDFをアップロードしてください"); return; }
+
+  const btn = document.getElementById("startBtn");
+  btn.disabled = true;
+  const progWrap = document.getElementById("progWrap");
+  const progBar = document.getElementById("progBar");
+  const progTxt = document.getElementById("progTxt");
+  progWrap.style.display = "block";
+
+  let totalStudents = 0;
+  let doneStudents = 0;
+  const failedList = [];
+
+  for (let fi = 0; fi < pendingFiles.length; fi++) {
+    const file = pendingFiles[fi];
+    document.getElementById("ftag-" + fi).className = "tag tag-run";
+    document.getElementById("ftag-" + fi).textContent = "読み込み中...";
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdf.numPages;
+
+      if (pdfMode === "single") {
+        // 1ファイル＝1生徒：全ページをまとめて送る
+        totalStudents++;
+        progTxt.textContent = `${file.name} を採点中...`;
+        const images = [];
+        for (let p = 1; p <= totalPages; p++) {
+          images.push(await pdfPageToBase64(pdf, p));
+        }
+        const data = await api({
+          action: "gradePages", images, testId, schoolId: school.id,
+          fileName: file.name, pageIndex: 0, totalPages: 1
+        });
+        if (data.error) { failedList.push(file.name + ": " + data.error); }
+        doneStudents++;
+      } else {
+        // 1ファイルに複数生徒：ページ数で分割
+        const pps = parseInt(document.getElementById("pagesPerStudent").value) || 1;
+        const studentCount = Math.ceil(totalPages / pps);
+        totalStudents += studentCount;
+
+        for (let si = 0; si < studentCount; si++) {
+          const startPage = si * pps + 1;
+          const endPage = Math.min(startPage + pps - 1, totalPages);
+          progTxt.textContent = `${file.name} — ${si + 1}/${studentCount}人目を採点中...`;
+          progBar.style.width = ((doneStudents / (totalStudents || 1)) * 100) + "%";
+
+          const images = [];
+          for (let p = startPage; p <= endPage; p++) {
+            images.push(await pdfPageToBase64(pdf, p));
+          }
+          const data = await api({
+            action: "gradePages", images, testId, schoolId: school.id,
+            fileName: file.name, pageIndex: si, totalPages: studentCount
+          });
+          if (data.error) { failedList.push(`${file.name} p.${startPage}: ${data.error}`); }
+          doneStudents++;
+          progBar.style.width = ((doneStudents / totalStudents) * 100) + "%";
+        }
+      }
+
+      document.getElementById("ftag-" + fi).className = "tag tag-ok";
+      document.getElementById("ftag-" + fi).textContent = "完了";
+    } catch (e) {
+      document.getElementById("ftag-" + fi).className = "tag tag-err";
+      document.getElementById("ftag-" + fi).textContent = "エラー";
+      failedList.push(file.name + ": " + e.message);
+    }
+  }
+
+  progBar.style.width = "100%";
+  progTxt.textContent = `採点完了！${doneStudents}件処理しました。`;
+  btn.disabled = false;
+
+  if (failedList.length) {
+    document.getElementById("failed-list").innerHTML = `
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:var(--r-sm);padding:12px 16px;font-size:13px;color:#b91c1c;margin-top:8px;">
+        <strong>エラーが発生した答案：</strong><br>${failedList.map(e => `・${e}`).join("<br>")}
+      </div>`;
+  }
+  alert(`採点完了！「成績一覧」タブで確認してください。`);
+}
+
+// ===== 成績一覧 =====
+function populateResultSelect() {
+  if (!school) return;
+  const sel = document.getElementById("res-test");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— テストを選択 —</option>' + currentTests.map(t => `<option value="${t.id}">${t.name}</option>`).join("");
+  if (cur) sel.value = cur;
+}
+
+async function loadResults() {
+  const testId = document.getElementById("res-test").value;
+  const el = document.getElementById("results-wrap");
+  if (!testId) { el.innerHTML = '<div class="empty">テストを選択してください</div>'; document.getElementById("stats-row").style.display = "none"; return; }
+
+  el.innerHTML = '<div class="empty"><span class="spin"></span>読み込み中...</div>';
+  const [resultsData] = await Promise.all([api({ action: "getResults", testId })]);
+  allResults = resultsData.results || [];
+
+  const test = currentTests.find(t => t.id === testId);
+  const questions = test?.questions?.sort((a, b) => a.order_num - b.order_num) || [];
+
+  if (!allResults.length) {
+    el.innerHTML = '<div class="empty">まだ採点結果がありません</div>';
+    document.getElementById("stats-row").style.display = "none";
+    return;
+  }
+
+  // 統計
+  const scores = allResults.map(r => r.score);
+  const avg = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
+  document.getElementById("st-total").textContent = allResults.length;
+  document.getElementById("st-avg").textContent = avg;
+  document.getElementById("st-max").textContent = Math.max(...scores);
+  document.getElementById("st-min").textContent = Math.min(...scores);
+  document.getElementById("stats-row").style.display = "grid";
+
+  const qHeaders = questions.map((q, i) => `<th title="${q.question_text}">問${i + 1}</th>`).join("");
+  const rows = allResults.map(r => {
+    const flags = r.correct_flags || [];
+    const qCells = flags.map(c => `<td class="${c ? "cell-o" : "cell-x"}">${c ? "○" : "✗"}</td>`).join("");
+    const code = r.student_code || "";
+    return `<tr>
+      <td>${r.grade || ""}</td>
+      <td>${r.class_name || ""}</td>
+      <td>${r.seat_number || ""}</td>
+      <td style="font-weight:500;">${r.student_name || ""}</td>
+      <td><code style="font-size:11px;">${code}</code></td>
+      ${qCells}
+      <td style="font-weight:700;">${r.score}<span style="font-size:11px;color:var(--ink-m);">/${r.total_points}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-xs" onclick="showDetail('${r.id}')">詳細</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteResult('${r.id}')">削除</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>学年</th><th>クラス</th><th>番号</th><th>氏名</th><th>生徒コード</th>${qHeaders}<th>合計</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function showDetail(resultId) {
+  const r = allResults.find(x => x.id === resultId);
+  if (!r) return;
+  const test = currentTests.find(t => t.id === r.test_id);
+  const questions = test?.questions?.sort((a, b) => a.order_num - b.order_num) || [];
+  const answers = r.answers || [];
+  const flags = r.correct_flags || [];
+
+  document.getElementById("detail-title").textContent = `${r.student_name || "不明"} の採点詳細`;
+  document.getElementById("detail-body").innerHTML = `
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;padding:16px;background:var(--s2);border-radius:var(--r-sm);">
+      <div style="font-family:'DM Sans',sans-serif;font-size:42px;font-weight:700;color:var(--accent);line-height:1;">${r.score}</div>
+      <div>
+        <div style="font-size:13px;color:var(--ink-m);">/ ${r.total_points}点</div>
+        <div style="font-size:13px;color:var(--ink-m);">${r.grade}年${r.class_name} ${r.seat_number}番</div>
+        <div style="font-size:12px;color:var(--ink-m);">生徒コード: <code>${r.student_code}</code></div>
+      </div>
+    </div>
+    ${questions.map((q, qi) => {
+      const ok = flags[qi];
+      return `<div style="padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--border);border-left:4px solid ${ok ? "var(--green)" : "var(--red)"};margin-bottom:8px;background:${ok ? "var(--green-lt)" : "#fef2f2"};">
+        <div style="font-size:12px;font-weight:700;color:var(--ink-s);margin-bottom:4px;">問${q.order_num}（${q.points}点）</div>
+        <div style="font-size:13px;margin-bottom:3px;">${q.question_text}</div>
+        <div style="font-size:14px;">解答: <strong>${answers[qi] || "（未記入）"}</strong> ${ok ? "✅ 正解" : `❌ 不正解（正解: ${q.correct_answer}）`}</div>
+      </div>`;
+    }).join("")}`;
+  document.getElementById("detailOverlay").classList.add("on");
+}
+
+async function deleteResult(id) {
+  if (!confirm("この採点結果を削除しますか？")) return;
+  await api({ action: "deleteResult", resultId: id });
+  loadResults();
+}
+
+// ===== 解答用紙印刷 =====
+function printAnswerSheet() {
+  const testId = document.getElementById("res-test").value;
+  const test = currentTests.find(t => t.id === testId);
+  if (!test) { alert("テストを選択してください"); return; }
+
+  const questions = test.questions?.sort((a, b) => a.order_num - b.order_num) || [];
+  const totalPts = questions.reduce((a, q) => a + q.points, 0);
+  const qCount = questions.length;
+
+  // 列数を問題数に応じて決定
+  const cols = qCount <= 10 ? 1 : qCount <= 30 ? 2 : 3;
+  const perCol = Math.ceil(qCount / cols);
+
+  // 列ごとに問題を分割
+  const colGroups = [];
+  for (let c = 0; c < cols; c++) {
+    colGroups.push(questions.slice(c * perCol, (c + 1) * perCol));
+  }
+
+  const colWidth = cols === 1 ? "100%" : cols === 2 ? "48%" : "31%";
+
+  const colsHTML = colGroups.map(group => `
+    <div style="width:${colWidth};">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#1a1f2e;color:#fff;">
+            <th style="padding:6px 10px;text-align:center;width:48px;font-size:12px;">番号</th>
+            <th style="padding:6px 10px;text-align:left;font-size:12px;">解答</th>
+            ${totalPts !== qCount ? '<th style="padding:6px 10px;text-align:center;width:40px;font-size:12px;">点</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${group.map(q => `
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:7px 10px;text-align:center;font-weight:700;font-size:13px;border-right:1px solid #e2e8f0;">${q.order_num}</td>
+            <td style="padding:7px 10px;min-height:28px;"></td>
+            ${totalPts !== qCount ? `<td style="padding:7px 10px;text-align:center;border-left:1px solid #e2e8f0;color:#94a3b8;font-size:12px;">${q.points}</td>` : ''}
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>${test.name} 解答用紙</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Sans:wght@700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 portrait; margin: 12mm 14mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans JP', sans-serif; color: #1a1f2e; background: #fff; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <div style="border:2px solid #1a1f2e;border-radius:8px;padding:14px 18px;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-family:'DM Sans',sans-serif;font-size:18px;font-weight:700;">${test.name}</div>
+      <div style="font-size:12px;color:#4a5568;">満点：${totalPts}点</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px;">
+      <div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;">生徒ID</div>
+        <div style="border-bottom:1.5px solid #1a1f2e;height:24px;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;">氏名</div>
+        <div style="border-bottom:1.5px solid #1a1f2e;height:24px;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;">学年</div>
+        <div style="border-bottom:1.5px solid #1a1f2e;height:24px;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;">クラス</div>
+        <div style="border-bottom:1.5px solid #1a1f2e;height:24px;"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;">出席番号</div>
+        <div style="border-bottom:1.5px solid #1a1f2e;height:24px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 解答欄 -->
+  <div style="display:flex;gap:2%;justify-content:space-between;align-items:flex-start;">
+    ${colsHTML}
+  </div>
+
+  <!-- フッター -->
+  <div style="margin-top:14px;border-top:1px solid #e2e8f0;padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:11px;color:#94a3b8;">採点システム自動生成</div>
+    <div style="border:1.5px solid #1a1f2e;border-radius:4px;padding:4px 20px;font-size:12px;">合計　　　　/ ${totalPts}点</div>
+  </div>
+</body>
+</html>`;
+
+  const w = window.open("", "_blank");
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
+}
+
+function exportCSV() {
+  if (!allResults.length) { alert("データがありません"); return; }
+  const test = currentTests.find(t => t.id === document.getElementById("res-test").value);
+  const questions = test?.questions?.sort((a, b) => a.order_num - b.order_num) || [];
+  const headers = ["学年", "クラス", "出席番号", "氏名", "生徒コード", ...questions.map((_, i) => `問${i + 1}`), "合計", "満点"];
+  const rows = allResults.map(r => {
+    const flags = r.correct_flags || [];
+    return [r.grade, r.class_name, r.seat_number, r.student_name, r.student_code,
+      ...flags.map(c => c ? 1 : 0), r.score, r.total_points];
+  });
+  const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${test?.name || "成績"}.csv`; a.click();
+}
+
+// ===== UTILS =====
+function showErr(el, msg) { el.textContent = msg; el.style.display = "block"; }
+function showSetup() { document.getElementById("setupOverlay").classList.add("on"); }
+function closeModal(id) { document.getElementById(id).classList.remove("on"); }
+function closeBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+// ===== 都道府県テンプレート =====
+const PREFS = [
+  "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
+  "茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県",
+  "新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県",
+  "静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県",
+  "奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県",
+  "徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県",
+  "熊本県","大分県","宮崎県","鹿児島県","沖縄県"
+];
+const PREF_NUMS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳","㉑","㉒","㉓","㉔","㉕","㉖","㉗","㉘","㉙","㉚","㉛","㉜","㉝","㉞","㉟","㊱","㊲","㊳","㊴","㊵","㊶","㊷","㊸","㊹","㊺","㊻","㊼"];
+
+function loadPrefTemplate() {
+  if (!confirm("都道府県47問テンプレートを読み込みます。現在の入力内容は上書きされます。よろしいですか？")) return;
+
+  // 問題数を47に設定
+  document.getElementById("t-qcount").value = 47;
+  buildQForm();
+
+  // 少し待ってから値を埋める
+  setTimeout(() => {
+    PREFS.forEach((pref, i) => {
+      const qtEl = document.getElementById("qt-" + i);
+      const qcEl = document.getElementById("qcorrect-" + i);
+      const qpEl = document.getElementById("qpts-" + i);
+      if (qtEl) qtEl.value = PREF_NUMS[i] + " の都道府県名を答えよ";
+      if (qcEl) qcEl.value = pref;
+      if (qpEl) qpEl.value = 1;
+    });
+    // テスト名と科目のデフォルト
+    if (!document.getElementById("t-name").value) {
+      document.getElementById("t-name").value = "都道府県テスト";
+      document.getElementById("t-subject").value = "地理";
+    }
+    alert("47問を入力しました！テスト名を確認して「テストを保存」を押してください。");
+  }, 100);
+}
+
+buildQForm();
+</script>
+</body>
+</html>

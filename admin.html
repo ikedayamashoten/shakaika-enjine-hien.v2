@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理者ダッシュボード | 社会科採点システム</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1a1f2e;--ink-s:#4a5568;--ink-m:#94a3b8;
+  --accent:#1d6fb8;--orange:#f59e0b;--red:#ef4444;--green:#16a34a;
+  --bg:#f5f6fa;--white:#fff;--s2:#f8fafc;--s3:#f1f5f9;
+  --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);--r:14px;--r-sm:8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;min-height:100vh;}
+.login-screen{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;
+  background:linear-gradient(135deg,#071020 0%,#0c1e44 100%);}
+.login-card{background:var(--white);border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:var(--shadow-lg);}
+.login-badge{display:inline-block;background:#fff3e0;color:var(--orange);padding:3px 12px;border-radius:12px;font-size:12px;font-weight:700;margin-bottom:14px;}
+.login-title{font-family:'DM Sans',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px;color:var(--ink);}
+.login-sub{font-size:13px;color:var(--ink-m);margin-bottom:24px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--ink-s);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.field input{width:100%;padding:12px 16px;border:2px solid var(--border);border-radius:var(--r-sm);font-size:15px;font-family:inherit;outline:none;transition:border-color .2s;background:var(--s2);}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(29,111,184,.1);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 20px;border:none;border-radius:var(--r-sm);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:white;}
+.btn-primary:hover:not(:disabled){background:#155e9c;transform:translateY(-1px);}
+.btn-block{width:100%;padding:14px;font-size:15px;}
+.btn-outline{background:transparent;color:var(--accent);border:2px solid var(--accent);}
+.btn-outline:hover{background:rgba(29,111,184,.06);}
+.btn-ghost{background:var(--s3);color:var(--ink-s);border:none;}
+.btn-ghost:hover{background:var(--border);}
+.btn-danger{background:var(--red);color:white;border:none;}
+.btn-danger:hover{background:#dc2626;}
+.btn-sm{padding:7px 14px;font-size:13px;border-radius:8px;}
+.btn-xs{padding:5px 10px;font-size:12px;border-radius:6px;}
+.err{display:none;font-size:13px;color:var(--red);text-align:center;margin-top:12px;}
+#app{display:none;}
+.topbar{background:var(--ink);padding:0 24px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.topbar-title{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:white;flex:1;}
+.admin-badge{background:#fff3e0;color:var(--orange);padding:3px 12px;border-radius:12px;font-size:12px;font-weight:700;}
+.main{max-width:1100px;margin:0 auto;padding:28px 20px;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px;}
+.stat{background:var(--white);border-radius:var(--r-sm);border:1px solid var(--border);padding:18px;text-align:center;}
+.stat-n{font-family:'DM Sans',sans-serif;font-size:30px;font-weight:700;color:var(--accent);}
+.stat-l{font-size:11px;color:var(--ink-m);margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+.tabs{display:flex;gap:2px;background:var(--s3);border-radius:var(--r-sm);padding:4px;margin-bottom:22px;border:1px solid var(--border);}
+.tab{flex:1;padding:10px 8px;border:none;background:transparent;border-radius:6px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;color:var(--ink-s);transition:all .18s;white-space:nowrap;}
+.tab.on{background:var(--white);color:var(--ink);font-weight:700;box-shadow:var(--shadow);}
+.tab:hover:not(.on){color:var(--ink);background:rgba(255,255,255,.6);}
+.pane{display:none;}.pane.on{display:block;}
+.card{background:var(--white);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow);padding:24px;margin-bottom:18px;}
+.card-head{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.school-row{display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.school-row:last-child{border-bottom:none;}
+.s-ava{width:44px;height:44px;background:#eff6ff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border:2px solid #dbeafe;}
+.s-info{flex:1;min-width:0;}
+.s-name{font-size:15px;font-weight:700;color:var(--ink);}
+.s-meta{font-size:12px;color:var(--ink-m);margin-top:3px;}
+.table-wrap{overflow-x:auto;border-radius:var(--r-sm);border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--ink);color:rgba(255,255,255,.9);padding:10px 12px;text-align:left;white-space:nowrap;font-weight:600;font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.3px;}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--s2);}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;overflow-y:auto;padding:20px;backdrop-filter:blur(2px);}
+.overlay.on{display:block;}
+.modal{background:var(--white);border-radius:18px;max-width:520px;margin:0 auto;padding:32px;box-shadow:var(--shadow-lg);}
+.modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.modal-h h2{font-family:'DM Sans',sans-serif;font-size:18px;font-weight:700;color:var(--ink);}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--ink-m);padding:4px;border-radius:6px;}
+.modal-close:hover{background:var(--s3);}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.b-blue{background:#eff6ff;color:#1d4ed8;}
+.b-green{background:#f0fdf4;color:#166534;}
+.b-gray{background:var(--s3);color:var(--ink-s);}
+.b-purple{background:#faf5ff;color:#7c3aed;}
+.b-orange{background:#fff7ed;color:#b45309;}
+code{background:var(--s3);padding:2px 8px;border-radius:5px;font-family:'Courier New',monospace;font-size:12px;color:var(--accent);border:1px solid var(--border);}
+.spin{width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:40px;color:var(--ink-m);font-size:14px;}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-bar input,.filter-bar select{padding:8px 12px;border:2px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:inherit;outline:none;background:var(--white);}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent);}
+.info-box{background:#eff6ff;border:1px solid #dbeafe;border-left:4px solid var(--accent);border-radius:var(--r-sm);padding:14px 16px;font-size:13px;color:#1e3a5f;margin-bottom:14px;}
+@media(max-width:640px){.main{padding:20px 12px;}.tabs{flex-wrap:wrap;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-badge">🔐 管理者専用</div>
+    <div class="login-title">社会科採点システム</div>
+    <div class="login-sub">管理者ダッシュボード</div>
+    <div class="field"><label>管理者ID</label><input id="inp-id" type="text" placeholder="admin" onkeydown="if(event.key==='Enter')document.getElementById('inp-pass').focus()"></div>
+    <div class="field"><label>パスワード</label><input id="inp-pass" type="password" placeholder="管理者パスワード" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary btn-block" id="loginBtn" onclick="doLogin()">ログイン</button>
+    <div class="err" id="loginErr">IDまたはパスワードが違います</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">📋 社会科採点システム | 管理者ダッシュボード</div>
+    <span class="admin-badge">ADMIN</span>
+    <button style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;" onclick="doLogout()">ログアウト</button>
+  </div>
+  <div class="main">
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="st-schools">-</div><div class="stat-l">登録学校数</div></div>
+      <div class="stat"><div class="stat-n" id="st-tests">-</div><div class="stat-l">テスト総数</div></div>
+      <div class="stat"><div class="stat-n" id="st-results">-</div><div class="stat-l">採点件数</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" onclick="goTab('schools',this)">🏫 学校管理</button>
+      <button class="tab" onclick="goTab('results',this)">📊 全採点データ</button>
+    </div>
+
+    <!-- 学校管理 -->
+    <div id="pane-schools" class="pane on">
+      <div class="card">
+        <div class="card-head">
+          🏫 登録学校一覧
+          <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="openAddModal()">＋ 学校を追加</button>
+        </div>
+        <div id="school-list"><div class="empty"><span class="spin"></span>読み込み中...</div></div>
+      </div>
+    </div>
+
+    <!-- 全採点データ -->
+    <div id="pane-results" class="pane">
+      <div class="card">
+        <div class="card-head">
+          📊 全採点データ
+          <button class="btn btn-sm" style="background:#16a34a;color:#fff;border:none;margin-left:auto;" onclick="exportAllCSV()">📥 CSV出力</button>
+        </div>
+        <div class="filter-bar">
+          <select id="f-school" onchange="filterResults()"><option value="">学校：すべて</option></select>
+          <select id="f-subject" onchange="filterResults()">
+            <option value="">科目：すべて</option>
+            <option>日本史</option><option>世界史</option><option>地理</option><option>政治経済</option><option>倫理</option>
+          </select>
+          <input type="text" id="f-name" placeholder="氏名で絞り込み" oninput="filterResults()" style="flex:1;min-width:120px;">
+          <button class="btn btn-primary btn-sm" onclick="loadAllResults()">🔄 更新</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>採点日時</th><th>学校</th><th>テスト名</th><th>科目</th>
+              <th>学年</th><th>クラス</th><th>番号</th><th>氏名</th>
+              <th>点数</th><th>正解率</th>
+            </tr></thead>
+            <tbody id="results-tbody"><tr><td colspan="10" class="empty">「更新」を押してください</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 学校追加モーダル -->
+<div class="overlay" id="addOverlay" onclick="closeBg(event,'addOverlay')">
+  <div class="modal">
+    <div class="modal-h">
+      <h2>🏫 学校を追加</h2>
+      <button class="modal-close" onclick="closeModal('addOverlay')">✕</button>
+    </div>
+    <div class="field"><label>学校名</label><input id="n-name" type="text" placeholder="例：○○高等学校"></div>
+    <div class="field"><label>学校コード（英数字）</label><input id="n-code" type="text" placeholder="例: school01"></div>
+    <div class="field"><label>先生用パスワード</label><input id="n-pass" type="text" placeholder="例: pass1234"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary" id="addBtn" onclick="addSchool()">登録する</button>
+      <button class="btn btn-ghost" onclick="closeModal('addOverlay')">キャンセル</button>
+    </div>
+    <div class="err" id="addErr" style="text-align:left;margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- 学校詳細・編集モーダル -->
+<div class="overlay" id="detOverlay" onclick="closeBg(event,'detOverlay')">
+  <div class="modal">
+    <div class="modal-h">
+      <h2 id="det-title">学校詳細</h2>
+      <button class="modal-close" onclick="closeModal('detOverlay')">✕</button>
+    </div>
+    <div id="det-body"></div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const FUNC_URL = "https://uavwqzzbtrvblfozphgy.supabase.co/functions/v1/grade";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdndxenpidHJ2Ymxmb3pwaGd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMTA2MjMsImV4cCI6MjA5MTU4NjYyM30.TxBGln12kQbccSTHZpJxwMJXRLFceS8imE60Rehh6Fw";
+
+// 管理者ログイン情報（変更可）
+const ADMIN_ID   = "admin";
+const ADMIN_PASS = "admin1234";
+
+// ===== STATE =====
+let schools = [];
+let allResults = [];
+let filteredResults = [];
+
+async function api(body) {
+  const res = await fetch(FUNC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": ANON_KEY, "Authorization": "Bearer " + ANON_KEY },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+// ===== LOGIN =====
+function doLogin() {
+  const id   = document.getElementById("inp-id").value.trim();
+  const pass = document.getElementById("inp-pass").value;
+  const err  = document.getElementById("loginErr");
+  err.style.display = "none";
+  if (id === ADMIN_ID && pass === ADMIN_PASS) {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    loadAll();
+  } else {
+    err.style.display = "block";
+  }
+}
+
+function doLogout() {
+  document.getElementById("app").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("inp-pass").value = "";
+}
+
+// ===== TABS =====
+function goTab(name, btn) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.remove("on"));
+  document.querySelectorAll(".pane").forEach(p => p.classList.remove("on"));
+  btn.classList.add("on");
+  document.getElementById("pane-" + name).classList.add("on");
+  if (name === "results") loadAllResults();
+}
+
+// ===== LOAD ALL =====
+async function loadAll() {
+  await loadSchools();
+  await loadStats();
+}
+
+async function loadStats() {
+  // 学校数
+  document.getElementById("st-schools").textContent = schools.length;
+
+  // テスト数・採点数は各学校から集計
+  let testCount = 0, resultCount = 0;
+  await Promise.all(schools.map(async s => {
+    const [td, rd] = await Promise.all([
+      api({ action: "getTests", schoolId: s.id }),
+      api({ action: "getResultsBySchool", schoolId: s.id })
+    ]);
+    testCount   += (td.tests   || []).length;
+    resultCount += (rd.results || []).length;
+  }));
+  document.getElementById("st-tests").textContent   = testCount;
+  document.getElementById("st-results").textContent = resultCount;
+}
+
+// ===== 学校管理 =====
+async function loadSchools() {
+  document.getElementById("school-list").innerHTML = '<div class="empty"><span class="spin"></span>読み込み中...</div>';
+  const data = await api({ action: "getSchools" });
+  schools = data.schools || [];
+  renderSchools();
+
+  // フィルター用セレクト更新
+  const sel = document.getElementById("f-school");
+  sel.innerHTML = '<option value="">学校：すべて</option>' +
+    schools.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+}
+
+function renderSchools() {
+  const el = document.getElementById("school-list");
+  if (!schools.length) { el.innerHTML = '<div class="empty">まだ学校が登録されていません</div>'; return; }
+  el.innerHTML = schools.map(s => `
+    <div class="school-row">
+      <div class="s-ava">🏫</div>
+      <div class="s-info">
+        <div class="s-name">${esc(s.name)}</div>
+        <div class="s-meta">
+          コード: <code>${esc(s.code)}</code>
+          　パスワード: <code>${esc(s.password_hash)}</code>
+          　登録日: ${new Date(s.created_at).toLocaleDateString("ja-JP")}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="showDetail('${s.id}')">詳細</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSchool('${s.id}','${esc(s.name)}')">削除</button>
+      </div>
+    </div>`).join("");
+}
+
+function openAddModal() {
+  document.getElementById("n-name").value = "";
+  document.getElementById("n-code").value = "";
+  document.getElementById("n-pass").value = "";
+  document.getElementById("addErr").style.display = "none";
+  document.getElementById("addOverlay").classList.add("on");
+}
+
+async function addSchool() {
+  const name = document.getElementById("n-name").value.trim();
+  const code = document.getElementById("n-code").value.trim();
+  const pass = document.getElementById("n-pass").value.trim();
+  const err  = document.getElementById("addErr");
+  err.style.display = "none";
+  if (!name || !code || !pass) { err.textContent = "すべて入力してください"; err.style.display = "block"; return; }
+
+  const btn = document.getElementById("addBtn");
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span>登録中...';
+
+  const data = await api({ action: "setupSchool", schoolCode: code, schoolName: name, password: pass });
+  btn.disabled = false; btn.textContent = "登録する";
+
+  if (data.error) { err.textContent = data.error; err.style.display = "block"; return; }
+  closeModal("addOverlay");
+  await loadSchools();
+  await loadStats();
+  alert(`「${name}」を登録しました。`);
+}
+
+async function deleteSchool(id, name) {
+  if (!confirm(`「${name}」を削除しますか？\n\nこの学校のテスト・採点結果もすべて削除されます。`)) return;
+  const data = await api({ action: "deleteSchool", schoolId: id });
+  if (data.error) { alert("エラー: " + data.error); return; }
+  await loadSchools();
+  await loadStats();
+}
+
+async function showDetail(id) {
+  const s = schools.find(x => x.id === id);
+  if (!s) return;
+
+  // テスト一覧を取得
+  const td = await api({ action: "getTests", schoolId: id });
+  const tests = td.tests || [];
+
+  document.getElementById("det-title").textContent = `🏫 ${s.name}`;
+  document.getElementById("det-body").innerHTML = `
+    <div class="info-box" style="margin-bottom:16px;">
+      <div style="margin-bottom:6px;">学校コード: <code>${esc(s.code)}</code></div>
+      <div style="margin-bottom:6px;">先生パスワード: <code>${esc(s.password_hash)}</code></div>
+      <div>登録日: ${new Date(s.created_at).toLocaleDateString("ja-JP")}</div>
+    </div>
+    <p style="font-size:13px;font-weight:700;color:var(--ink-s);margin-bottom:10px;">登録テスト（${tests.length}件）</p>
+    ${tests.length ? `
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${tests.map(t => {
+          const subjColor = { "日本史": "b-blue", "世界史": "b-blue", "地理": "b-green", "政治経済": "b-gray", "倫理": "b-purple" };
+          const qCount = t.questions?.length || 0;
+          const totalPts = t.questions?.reduce((a, q) => a + q.points, 0) || 0;
+          return `<div style="padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-sm);display:flex;align-items:center;gap:10px;">
+            <span class="badge ${subjColor[t.subject] || "b-gray"}">${t.subject}</span>
+            <span style="font-size:14px;font-weight:500;flex:1;">${esc(t.name)}</span>
+            <span style="font-size:12px;color:var(--ink-m);">${qCount}問 / ${totalPts}点満点</span>
+          </div>`;
+        }).join("")}
+      </div>` :
+      '<div class="empty" style="padding:20px;">テストがまだありません</div>'
+    }`;
+  document.getElementById("detOverlay").classList.add("on");
+}
+
+// ===== 全採点データ =====
+async function loadAllResults() {
+  document.getElementById("results-tbody").innerHTML = '<tr><td colspan="10" class="empty"><span class="spin"></span>読み込み中...</td></tr>';
+  allResults = [];
+
+  // 全学校の採点結果とテスト情報を並行取得
+  await Promise.all(schools.map(async s => {
+    const [testsData] = await Promise.all([api({ action: "getTests", schoolId: s.id })]);
+    const tests = testsData.tests || [];
+    await Promise.all(tests.map(async t => {
+      const rd = await api({ action: "getResults", testId: t.id });
+      (rd.results || []).forEach(r => {
+        allResults.push({ ...r, schoolName: s.name, testName: t.name, subject: t.subject });
+      });
+    }));
+  }));
+
+  // 日時降順ソート
+  allResults.sort((a, b) => new Date(b.graded_at) - new Date(a.graded_at));
+  filterResults();
+}
+
+function filterResults() {
+  const schoolId = document.getElementById("f-school").value;
+  const subject  = document.getElementById("f-subject").value;
+  const name     = document.getElementById("f-name").value.trim().toLowerCase();
+  const school   = schools.find(s => s.id === schoolId);
+
+  filteredResults = allResults.filter(r => {
+    if (schoolId && r.school_id !== schoolId) return false;
+    if (subject  && r.subject !== subject)    return false;
+    if (name     && !(r.student_name || "").toLowerCase().includes(name)) return false;
+    return true;
+  });
+
+  renderResultsTable();
+}
+
+function renderResultsTable() {
+  const el = document.getElementById("results-tbody");
+  if (!filteredResults.length) {
+    el.innerHTML = '<tr><td colspan="10" class="empty">データがありません</td></tr>';
+    return;
+  }
+  const subjColor = { "日本史": "b-blue", "世界史": "b-blue", "地理": "b-green", "政治経済": "b-gray", "倫理": "b-purple" };
+  el.innerHTML = filteredResults.map(r => {
+    const pct = r.total_points ? Math.round(r.score / r.total_points * 100) : 0;
+    const pctColor = pct >= 80 ? "#16a34a" : pct >= 60 ? "#1d6fb8" : "#ef4444";
+    return `<tr>
+      <td style="white-space:nowrap;">${new Date(r.graded_at).toLocaleDateString("ja-JP")}</td>
+      <td>${esc(r.schoolName || "")}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.testName || "")}</td>
+      <td><span class="badge ${subjColor[r.subject] || "b-gray"}">${esc(r.subject || "")}</span></td>
+      <td>${esc(r.grade || "")}</td>
+      <td>${esc(r.class_name || "")}</td>
+      <td>${r.seat_number || ""}</td>
+      <td style="font-weight:500;">${esc(r.student_name || "")}</td>
+      <td style="font-weight:700;">${r.score}<span style="font-size:11px;color:var(--ink-m);">/${r.total_points}</span></td>
+      <td style="font-weight:700;color:${pctColor};">${pct}%</td>
+    </tr>`;
+  }).join("");
+}
+
+function exportAllCSV() {
+  if (!filteredResults.length) { alert("データがありません"); return; }
+  const headers = ["採点日時","学校","テスト名","科目","学年","クラス","出席番号","氏名","点数","満点","正解率(%)"];
+  const rows = filteredResults.map(r => {
+    const pct = r.total_points ? Math.round(r.score / r.total_points * 100) : 0;
+    return [
+      new Date(r.graded_at).toLocaleDateString("ja-JP"),
+      r.schoolName || "", r.testName || "", r.subject || "",
+      r.grade || "", r.class_name || "", r.seat_number || "", r.student_name || "",
+      r.score, r.total_points, pct
+    ];
+  });
+  const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "全採点データ.csv";
+  a.click();
+}
+
+// ===== UTILS =====
+function esc(s) { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function closeModal(id) { document.getElementById(id).classList.remove("on"); }
+function closeBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+</script>
+</body>
+</html>
