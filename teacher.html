@@ -623,6 +623,7 @@ async function loadResults() {
       <td>${r.class_name || ""}</td>
       <td>${r.seat_number || ""}</td>
       <td style="font-weight:500;">${r.student_name || ""}</td>
+      <td style="font-size:12px;">${r.student_id || "<span style=\'color:var(--ink-m);\'>—</span>"}</td>
       <td><code style="font-size:11px;">${code}</code></td>
       ${qCells}
       <td style="font-weight:700;">${r.score}<span style="font-size:11px;color:var(--ink-m);">/${r.total_points}</span></td>
@@ -636,12 +637,15 @@ async function loadResults() {
   }).join("");
 
   el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>学年</th><th>クラス</th><th>番号</th><th>氏名</th><th>生徒コード</th>${qHeaders}<th>合計</th><th></th></tr></thead>
+    <thead><tr><th>学年</th><th>クラス</th><th>番号</th><th>氏名</th><th>生徒ID</th><th>生徒コード</th>${qHeaders}<th>合計</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
 
+let editingResultId = null;
+
 function showDetail(resultId) {
+  editingResultId = resultId;
   const r = allResults.find(x => x.id === resultId);
   if (!r) return;
   const test = currentTests.find(t => t.id === r.test_id);
@@ -651,23 +655,99 @@ function showDetail(resultId) {
 
   document.getElementById("detail-title").textContent = `${r.student_name || "不明"} の採点詳細`;
   document.getElementById("detail-body").innerHTML = `
-    <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;padding:16px;background:var(--s2);border-radius:var(--r-sm);">
-      <div style="font-family:'DM Sans',sans-serif;font-size:42px;font-weight:700;color:var(--accent);line-height:1;">${r.score}</div>
-      <div>
-        <div style="font-size:13px;color:var(--ink-m);">/ ${r.total_points}点</div>
-        <div style="font-size:13px;color:var(--ink-m);">${r.grade}年${r.class_name} ${r.seat_number}番</div>
-        <div style="font-size:12px;color:var(--ink-m);">生徒コード: <code>${r.student_code}</code></div>
+    <div style="background:var(--s2);border-radius:var(--r-sm);padding:16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;color:var(--ink-s);margin-bottom:10px;">📝 生徒情報（修正可）</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:11px;color:var(--ink-m);display:block;margin-bottom:4px;">氏名</label>
+          <input id="edit-name" type="text" value="${r.student_name || ""}" style="width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--ink-m);display:block;margin-bottom:4px;">生徒ID</label>
+          <input id="edit-sid" type="text" value="${r.student_id || ""}" style="width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--ink-m);display:block;margin-bottom:4px;">学年</label>
+          <input id="edit-grade" type="text" value="${r.grade || ""}" style="width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--ink-m);display:block;margin-bottom:4px;">クラス</label>
+          <input id="edit-class" type="text" value="${r.class_name || ""}" style="width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--ink-m);display:block;margin-bottom:4px;">出席番号</label>
+          <input id="edit-seat" type="number" value="${r.seat_number || ""}" style="width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;">
+        </div>
       </div>
     </div>
+    <div style="font-size:13px;font-weight:700;color:var(--ink-s);margin-bottom:10px;">📋 解答（クリックで正誤を切り替え）</div>
     ${questions.map((q, qi) => {
       const ok = flags[qi];
-      return `<div style="padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--border);border-left:4px solid ${ok ? "var(--green)" : "var(--red)"};margin-bottom:8px;background:${ok ? "var(--green-lt)" : "#fef2f2"};">
-        <div style="font-size:12px;font-weight:700;color:var(--ink-s);margin-bottom:4px;">問${q.order_num}（${q.points}点）</div>
-        <div style="font-size:13px;margin-bottom:3px;">${q.question_text}</div>
-        <div style="font-size:14px;">解答: <strong>${answers[qi] || "（未記入）"}</strong> ${ok ? "✅ 正解" : `❌ 不正解（正解: ${q.correct_answer}）`}</div>
+      return `<div id="qrow-${qi}" style="padding:12px 14px;border-radius:var(--r-sm);border:1px solid var(--border);border-left:4px solid ${ok ? "var(--green)" : "var(--red)"};margin-bottom:8px;background:${ok ? "var(--green-lt)" : "#fef2f2"};">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:700;color:var(--ink-s);">問${q.order_num}（${q.points}点）${q.question_text}</span>
+          <button onclick="toggleFlag(${qi})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:12px;font-family:inherit;">${ok ? "✅ 正解" : "❌ 不正解"}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--ink-m);">解答:</span>
+          <input id="ans-${qi}" type="text" value="${(answers[qi] || "").replace(/"/g,"&quot;")}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;">
+          <span style="font-size:12px;color:var(--green);">正解: ${q.correct_answer}</span>
+        </div>
       </div>`;
-    }).join("")}`;
+    }).join("")}
+    <div style="margin-top:16px;display:flex;gap:10px;">
+      <button onclick="saveEdit()" class="btn btn-primary">💾 修正を保存</button>
+      <button onclick="closeModal('detailOverlay')" class="btn btn-ghost">キャンセル</button>
+    </div>
+    <div id="edit-status" style="font-size:13px;margin-top:10px;"></div>`;
   document.getElementById("detailOverlay").classList.add("on");
+}
+
+function toggleFlag(qi) {
+  const row = document.getElementById("qrow-" + qi);
+  const btn = row.querySelector("button");
+  const isOk = btn.textContent.includes("✅");
+  // 切り替え
+  btn.textContent = isOk ? "❌ 不正解" : "✅ 正解";
+  row.style.borderLeftColor = isOk ? "var(--red)" : "var(--green)";
+  row.style.background = isOk ? "#fef2f2" : "var(--green-lt)";
+}
+
+async function saveEdit() {
+  const r = allResults.find(x => x.id === editingResultId);
+  if (!r) return;
+  const test = currentTests.find(t => t.id === r.test_id);
+  const questions = test?.questions?.sort((a, b) => a.order_num - b.order_num) || [];
+
+  const studentName = document.getElementById("edit-name").value.trim();
+  const studentId   = document.getElementById("edit-sid").value.trim();
+  const grade       = document.getElementById("edit-grade").value.trim();
+  const className   = document.getElementById("edit-class").value.trim();
+  const seatNumber  = parseInt(document.getElementById("edit-seat").value) || 0;
+
+  const answers = questions.map((_, qi) => document.getElementById("ans-" + qi)?.value || "");
+  const correctFlags = questions.map((_, qi) => {
+    const btn = document.getElementById("qrow-" + qi)?.querySelector("button");
+    return btn?.textContent.includes("✅") || false;
+  });
+
+  const status = document.getElementById("edit-status");
+  status.textContent = "保存中...";
+
+  const data = await api({ action: "updateResult", resultId: editingResultId,
+    studentName, grade, className, seatNumber, studentId, answers, correctFlags });
+
+  if (data.error) { status.style.color = "var(--red)"; status.textContent = "エラー: " + data.error; return; }
+
+  status.style.color = "var(--green)"; status.textContent = `✅ 保存しました（${data.score}点）`;
+
+  // ローカルのallResultsも更新
+  const idx = allResults.findIndex(x => x.id === editingResultId);
+  if (idx !== -1) {
+    allResults[idx] = { ...allResults[idx], student_name: studentName, student_id: studentId,
+      grade, class_name: className, seat_number: seatNumber, answers, correct_flags: correctFlags, score: data.score };
+  }
+  setTimeout(() => { closeModal("detailOverlay"); loadResults(); }, 800);
 }
 
 async function deleteResult(id) {
