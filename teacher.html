@@ -619,11 +619,11 @@ async function loadResults() {
     const qCells = flags.map(c => `<td class="${c ? "cell-o" : "cell-x"}">${c ? "○" : "✗"}</td>`).join("");
     const code = r.student_code || "";
     return `<tr>
+      <td style="font-size:12px;">${r.student_id || "<span style=\'color:var(--ink-m);\'>—</span>"}</td>
       <td>${r.grade || ""}</td>
       <td>${r.class_name || ""}</td>
       <td>${r.seat_number || ""}</td>
       <td style="font-weight:500;">${r.student_name || ""}</td>
-      <td style="font-size:12px;">${r.student_id || "<span style=\'color:var(--ink-m);\'>—</span>"}</td>
       <td><code style="font-size:11px;">${code}</code></td>
       ${qCells}
       <td style="font-weight:700;">${r.score}<span style="font-size:11px;color:var(--ink-m);">/${r.total_points}</span></td>
@@ -637,7 +637,7 @@ async function loadResults() {
   }).join("");
 
   el.innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>学年</th><th>クラス</th><th>番号</th><th>氏名</th><th>生徒ID</th><th>生徒コード</th>${qHeaders}<th>合計</th><th></th></tr></thead>
+    <thead><tr><th>生徒ID</th><th>学年</th><th>クラス</th><th>番号</th><th>氏名</th><th>生徒コード</th>${qHeaders}<th>合計</th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;
 }
@@ -866,10 +866,10 @@ function exportCSV() {
   if (!allResults.length) { alert("データがありません"); return; }
   const test = currentTests.find(t => t.id === document.getElementById("res-test").value);
   const questions = test?.questions?.sort((a, b) => a.order_num - b.order_num) || [];
-  const headers = ["学年", "クラス", "出席番号", "氏名", "生徒コード", ...questions.map((_, i) => `問${i + 1}`), "合計", "満点"];
+  const headers = ["生徒ID", "学年", "クラス", "出席番号", "氏名", "生徒コード", ...questions.map((_, i) => `問${i + 1}`), "合計", "満点"];
   const rows = allResults.map(r => {
     const flags = r.correct_flags || [];
-    return [r.grade, r.class_name, r.seat_number, r.student_name, r.student_code,
+    return [r.student_id || "", r.grade, r.class_name, r.seat_number, r.student_name, r.student_code,
       ...flags.map(c => c ? 1 : 0), r.score, r.total_points];
   });
   const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
