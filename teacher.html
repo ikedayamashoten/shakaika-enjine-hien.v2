@@ -164,10 +164,19 @@ code{background:var(--s3);padding:2px 8px;border-radius:5px;font-family:'Courier
           <label>問題数</label>
           <input id="t-qcount" type="number" min="1" max="50" value="5" style="width:80px;" onchange="buildQForm()">
         </div>
-        <div style="margin-bottom:14px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="margin-bottom:10px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--r-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <span style="font-size:13px;color:#14532d;">📍 テンプレート：</span>
           <button class="btn btn-sm" style="background:#16a34a;color:#fff;border:none;" onclick="loadPrefTemplate()">🗾 都道府県47問を自動入力</button>
           <span style="font-size:12px;color:#4ade80;">ボタン1つで①〜㊼の47問セットを入力します</span>
+        </div>
+        <div style="margin-bottom:14px;padding:12px 16px;background:#eff6ff;border:1px solid #dbeafe;border-radius:var(--r-sm);">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:13px;color:#1e40af;">📷 プリントから読み取り：</span>
+            <button class="btn btn-sm" style="background:#1d6fb8;color:#fff;border:none;" onclick="document.getElementById('printImageInput').click()">画像をアップロードして自動入力</button>
+            <span style="font-size:12px;color:#60a5fa;">問題プリントの写真を撮ってアップロードするだけ</span>
+          </div>
+          <input type="file" id="printImageInput" accept="image/*" style="display:none;" onchange="readPrintImage(this)">
+          <div id="printReadStatus" style="margin-top:8px;display:none;font-size:13px;"></div>
         </div>
         <div id="q-form"></div>
         <button class="btn btn-primary" style="margin-top:8px;" onclick="saveTest()">テストを保存</button>
@@ -884,6 +893,125 @@ function showErr(el, msg) { el.textContent = msg; el.style.display = "block"; }
 function showSetup() { document.getElementById("setupOverlay").classList.add("on"); }
 function closeModal(id) { document.getElementById(id).classList.remove("on"); }
 function closeBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+// ===== 問題プリント画像読み取り =====
+async function readPrintImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const status = document.getElementById("printReadStatus");
+  status.style.display = "block";
+  status.style.color = "var(--ink-s)";
+  status.innerHTML = '<span class="spin"></span>AIがプリントを読み取り中...';
+
+  try {
+    const b64 = await toBase64(file);
+    const mediaType = file.type || "image/jpeg";
+
+    const prompt = `この問題プリントの画像を読み取り、問題を抽出してください。
+
+【抽出ルール】
+- すべての問題を番号順に抽出する
+- 問題文をそのまま抽出する
+- 正解・解答が書いてあればそれも抽出する（ない場合は空文字）
+- 選択肢がある問題は "choice"、記述式は "fill" とする
+- 配点が書いてあれば抽出、なければ1とする
+
+JSONのみ返してください（マークダウン不要）:
+{
+  "test_name": "テスト名（読み取れる場合）",
+  "subject": "科目名（日本史/世界史/地理/政治経済/倫理 のいずれか、不明なら地理）",
+  "questions": [
+    {
+      "order_num": 1,
+      "question_text": "問題文",
+      "question_type": "fill または choice",
+      "correct_answer": "正解（不明なら空文字）",
+      "choices": ["選択肢1","選択肢2","選択肢3","選択肢4"],
+      "points": 1
+    }
+  ]
+}`;
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data: b64 } },
+            { type: "text", text: prompt }
+          ]
+        }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || "").join("") || "";
+    const clean = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    const parsed = JSON.parse(clean);
+
+    const questions = parsed.questions || [];
+    if (!questions.length) { status.style.color = "var(--red)"; status.textContent = "問題を読み取れませんでした。もう一度試してください。"; return; }
+
+    // テスト名・科目を自動入力
+    if (parsed.test_name && !document.getElementById("t-name").value) {
+      document.getElementById("t-name").value = parsed.test_name;
+    }
+    if (parsed.subject) {
+      const sel = document.getElementById("t-subject");
+      for (let opt of sel.options) { if (opt.value === parsed.subject) { sel.value = parsed.subject; break; } }
+    }
+
+    // 問題数をセットしてフォームを再構築
+    document.getElementById("t-qcount").value = questions.length;
+    buildQForm();
+
+    // 少し待ってから各フォームに値を流し込む
+    setTimeout(() => {
+      questions.forEach((q, i) => {
+        const qtEl = document.getElementById("qt-" + i);
+        const qtypeEl = document.getElementById("qtype-" + i);
+        const qcorrectEl = document.getElementById("qcorrect-" + i);
+        const qptsEl = document.getElementById("qpts-" + i);
+
+        if (qtEl) qtEl.value = q.question_text || "";
+        if (qtypeEl) {
+          qtypeEl.value = q.question_type || "fill";
+          toggleQ(i);
+        }
+        if (qcorrectEl) qcorrectEl.value = q.correct_answer || "";
+        if (qptsEl) qptsEl.value = q.points || 1;
+
+        // 選択肢がある場合
+        if (q.question_type === "choice" && q.choices?.length) {
+          const wrongs = q.choices.filter(c => c !== q.correct_answer);
+          const w1 = document.getElementById("qw1-" + i);
+          const w2 = document.getElementById("qw2-" + i);
+          const w3 = document.getElementById("qw3-" + i);
+          if (w1) w1.value = wrongs[0] || "";
+          if (w2) w2.value = wrongs[1] || "";
+          if (w3) w3.value = wrongs[2] || "";
+        }
+      });
+
+      const hasNoAnswer = questions.some(q => !q.correct_answer);
+      status.style.color = hasNoAnswer ? "#b45309" : "var(--green)";
+      status.innerHTML = hasNoAnswer
+        ? `✅ ${questions.length}問を読み取りました。⚠️ 正解が読み取れなかった問題があります。空欄を確認して入力してください。`
+        : `✅ ${questions.length}問と正解をすべて読み取りました！内容を確認して「テストを保存」を押してください。`;
+    }, 150);
+
+  } catch(e) {
+    status.style.color = "var(--red)";
+    status.textContent = "エラーが発生しました: " + e.message;
+  }
+
+  input.value = ""; // リセット
+}
 
 // ===== 都道府県テンプレート =====
 const PREFS = [
